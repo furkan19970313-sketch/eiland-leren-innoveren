@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Het Eiland van Leren &amp; Innoveren · Check-in / Check-out</title>
+<meta name="theme-color" content="#1f7fb0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+
+<script>
+/* =====================================================================
+   🔑 STAP 2 UIT DE HANDLEIDING: PLAK HIER JE SUPABASE-GEGEVENS
+   ---------------------------------------------------------------------
+   Vervang de twee teksten tussen de aanhalingstekens.
+   Zolang hier nog "PLAK_HIER..." staat, draait de app in DEMO-MODUS
+   (werkt dan alleen binnen één browser, handig om te testen).
+   ===================================================================== */
+const SUPABASE_URL = 'https://zalujletqzutsmvxjqnl.supabase.co';          // bv. https://abcdefgh.supabase.co
+const SUPABASE_KEY = 'sb_publishable_LGuu2p7ikLsk61K1IIbsQA_2bu39VKA'; // begint met sb_publishable_... of eyJ...
+</script>
+
+<style>
+  :root{
+    --zee1:#3fb4d8; --zee2:#1f7fb0;
+    --inkt:#1d3b4f; --zacht:#5b6b78; --papier:#fffdf6;
+    --accent:#ff7a59; --groen:#2f9e44;
+    --radius:18px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  html{background:#1f7fb0}
+  body{
+    font-family:'Baloo 2', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color:var(--inkt);
+    background:linear-gradient(180deg,var(--zee1),var(--zee2)) fixed;
+    min-height:100dvh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button{font-family:inherit}
+  [hidden]{display:none !important}
+
+  /* ---------- Kop & kaartjes (studentweergave) ---------- */
+  #kop{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:10px 16px;color:#fff;max-width:960px;margin:0 auto;
+  }
+  #kop .logo{font-weight:800;font-size:1.15rem;line-height:1.1;text-shadow:0 2px 4px rgba(0,0,0,.2)}
+  .verbinding{display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;opacity:.95;white-space:nowrap}
+  .verbinding i{width:10px;height:10px;border-radius:50%;background:#ffd166;box-shadow:0 0 0 3px rgba(255,255,255,.3)}
+  .verbinding.ok i{background:#51cf66}
+  .verbinding.fout i{background:#ff6b6b}
+
+  #demoBanner{
+    max-width:960px;margin:0 auto 8px;padding:8px 14px;border-radius:12px;
+    background:#fff3bf;color:#5c4400;font-size:.85rem;line-height:1.3;
+    width:calc(100% - 24px);
+  }
+  main{max-width:960px;margin:0 auto;padding:0 12px}
+  .kaartje{
+    background:var(--papier);border-radius:var(--radius);padding:18px;
+    box-shadow:0 10px 30px rgba(0,40,70,.25);margin-bottom:12px;
+  }
+  .kaartje h1{margin:0 0 4px;font-size:1.5rem;line-height:1.15}
+  .kaartje p{margin:0 0 12px;color:var(--zacht)}
+  label.veld{display:block;font-weight:700;margin-bottom:12px}
+  label.veld input{
+    display:block;width:100%;margin-top:4px;padding:12px 14px;font-size:1.1rem;font-family:inherit;
+    border:2px solid #d9e2e8;border-radius:12px;background:#fff;color:var(--inkt);
+  }
+  label.veld input:focus{outline:none;border-color:var(--zee2)}
+  .veldlabel{font-weight:700;margin:6px 0 6px}
+  .avatar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:6px;margin-bottom:12px}
+  .avatar-grid button{
+    aspect-ratio:1;font-size:1.6rem;border:2px solid #e3e9ee;border-radius:14px;background:#fff;cursor:pointer;
+    display:grid;place-items:center;transition:transform .1s;
+  }
+  .avatar-grid button[aria-pressed="true"]{border-color:var(--zee2);background:#e7f5fb;transform:scale(1.08)}
+  .kleur-rij{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .kleur-rij button{width:38px;height:38px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #d9e2e8;cursor:pointer}
+  .kleur-rij button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--inkt)}
+  .voorbeeld{display:flex;align-items:center;gap:12px;margin-bottom:14px;color:var(--zacht);font-weight:600}
+  .voorbeeld .bol-mini{
+    width:52px;height:52px;border-radius:50%;background:#fff;border:4px solid var(--c,#ff7a59);
+    display:grid;place-items:center;font-size:1.7rem;box-shadow:0 3px 8px rgba(0,0,0,.2)
+  }
+  .knop{
+    border:0;border-radius:999px;padding:10px 18px;font-size:1rem;font-weight:700;cursor:pointer;
+    background:var(--zee2);color:#fff;box-shadow:0 4px 0 #155e83;
+  }
+  .knop:active{transform:translateY(2px);box-shadow:0 2px 0 #155e83}
+  .knop.groot{width:100%;padding:14px;font-size:1.2rem;background:var(--accent);box-shadow:0 4px 0 #d1532f}
+  .knop.licht{background:#eef4f7;color:var(--inkt);box-shadow:0 3px 0 #cfdbe2}
+  #instructie{
+    background:rgba(255,255,255,.92);border-radius:14px;padding:10px 14px;margin-bottom:10px;
+    font-weight:600;line-height:1.3;font-size:.95rem
+  }
+  #instructie small{display:block;font-weight:500;color:var(--zacht);margin-top:2px}
+
+  /* ---------- De kaart ---------- */
+  #kaartWrap{max-width:960px;margin:0 auto;padding:0 12px}
+  #kaartContainer{
+    position:relative;width:min(100%, calc((100dvh - 120px) * 4 / 3));min-width:280px;
+    margin:0 auto;aspect-ratio:4/3;container-type:inline-size;
+    border-radius:var(--radius);overflow:hidden;box-shadow:0 12px 36px rgba(0,30,60,.35);
+    user-select:none;-webkit-user-select:none;
+  }
+  #kaart, .beweging{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .beweging{pointer-events:none;display:none}
+  body.toon-beweging .beweging{display:block}
+  #kaart .lt{font:800 22px 'Baloo 2', system-ui, sans-serif}
+  #kaart .ls{font:600 15px 'Baloo 2', system-ui, sans-serif;fill:#5b6b78}
+  #tokens{position:absolute;inset:0;pointer-events:none}
+
+  .token{position:absolute;width:0;height:0;z-index:2;transition:left .45s ease, top .45s ease;--size:max(26px,4.6cqw)}
+  .token .bol{
+    position:absolute;left:0;top:0;width:var(--size);height:var(--size);transform:translate(-50%,-50%);
+    border-radius:50%;background:#fff;border:max(3px,.38cqw) solid var(--c);
+    display:grid;place-items:center;font-size:calc(var(--size) * .58);line-height:1;
+    box-shadow:0 3px 8px rgba(0,0,0,.35);
+  }
+  .token .naam{
+    position:absolute;left:0;top:calc(var(--size) / 2 + 1px);transform:translateX(-50%);
+    background:var(--c);color:var(--t,#fff);font-weight:700;line-height:1.35;
+    font-size:max(10px, calc(var(--size) * .34));padding:0 .55em;border-radius:999px;white-space:nowrap;
+    max-width:14em;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 4px rgba(0,0,0,.25);
+  }
+  .token.ander{opacity:.8}
+  .token.ander .naam{font-size:max(9px, calc(var(--size) * .3))}
+  .token.mijn{--size:max(46px,7cqw);z-index:5}
+  .token.mijn .bol{pointer-events:auto;cursor:grab;touch-action:none;animation:puls 2s ease-in-out infinite;border-style:solid}
+  .token.mijn .bol::after{
+    content:"";position:absolute;inset:-9px;border-radius:50%;border:3px dashed #fff;opacity:.9;
+  }
+  .token.mijn.sleept{transition:none;z-index:6}
+  .token.mijn.sleept .bol{cursor:grabbing;animation:none;transform:translate(-50%,-50%) scale(1.18)}
+  @keyframes puls{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.07)}}
+  .token.nieuw .bol{animation:plof .5s ease-out}
+  @keyframes plof{0%{transform:translate(-50%,-50%) scale(0)}70%{transform:translate(-50%,-50%) scale(1.25)}100%{transform:translate(-50%,-50%) scale(1)}}
+
+  /* ---------- Status (student) ---------- */
+  #statusKaart{max-width:960px;margin:12px auto 24px;padding:0 12px}
+  #statusKaart .kaartje{display:flex;flex-direction:column;gap:6px}
+  .status-rij{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .status-rij .bol-mini{width:44px;height:44px;font-size:1.4rem;border-width:3px}
+  .zonetekst{font-size:1.1rem}
+  .opgeslagen{color:var(--groen);font-weight:700;font-size:.9rem;opacity:0;transition:opacity .3s}
+  .opgeslagen.zicht{opacity:1}
+  .checkin-info{font-size:.95rem;color:var(--zacht)}
+  .knoppenrij{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .knoppenrij a{color:var(--zacht);font-size:.9rem;align-self:center}
+
+  /* ---------- Presentatieweergave ---------- */
+  body.presentatie{overflow:hidden;height:100dvh}
+  body.presentatie #kop, body.presentatie main, body.presentatie #statusKaart, body.presentatie #demoBanner{display:none}
+  body.presentatie #kaartWrap{position:fixed;inset:0;display:grid;place-items:center;padding:0;max-width:none}
+  body.presentatie #kaartContainer{width:min(100vw, 133.333vh);min-width:0;border-radius:0;box-shadow:none}
+  body.presentatie .token{--size:max(26px,3.6cqw)}
+  #presentatieUI{display:none}
+  body.presentatie #presentatieUI{display:block}
+  .p-bediening{
+    position:fixed;top:12px;left:12px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;z-index:20;
+    opacity:.4;transition:opacity .25s;
+  }
+  .p-bediening:hover, .p-bediening:focus-within{opacity:1}
+  .p-bediening button, .p-teller{
+    border:0;border-radius:999px;padding:6px 14px;font-size:clamp(12px,1vw,16px);font-weight:700;cursor:pointer;
+    background:rgba(255,253,246,.92);color:var(--inkt);box-shadow:0 2px 6px rgba(0,0,0,.2)
+  }
+  .p-bediening button[aria-pressed="true"]{background:var(--accent);color:#fff}
+  .p-teller{cursor:default;background:var(--inkt);color:#fff;display:flex;align-items:center;gap:6px}
+  .p-teller i{width:9px;height:9px;border-radius:50%;background:#ffd166}
+  .p-teller.ok i{background:#51cf66}.p-teller.fout i{background:#ff6b6b}
+  .p-telling{
+    position:fixed;left:12px;bottom:12px;display:flex;flex-direction:column;gap:5px;z-index:20;
+  }
+  .p-telling .chip{
+    background:rgba(255,253,246,.92);border-radius:999px;padding:3px 12px;font-weight:700;
+    font-size:clamp(12px,1.05vw,18px);box-shadow:0 2px 6px rgba(0,0,0,.2);display:flex;gap:8px;align-items:center
+  }
+  .p-telling .chip b{margin-left:auto;min-width:1.6em;text-align:center;background:var(--inkt);color:#fff;border-radius:999px;padding:0 .4em}
+  .p-qr{
+    position:fixed;right:12px;bottom:12px;z-index:20;width:clamp(120px,11vw,230px);
+    background:var(--papier);border-radius:16px;padding:10px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.3)
+  }
+  .p-qr-titel{font-weight:800;font-size:clamp(14px,1.3vw,24px);line-height:1.1;margin-bottom:6px}
+  .p-qr img{width:100%;height:auto;display:block;image-rendering:pixelated}
+  .p-qr-url{font-size:clamp(9px,.7vw,13px);color:var(--zacht);word-break:break-all;margin-top:4px;line-height:1.2}
+  .p-legenda{
+    position:fixed;top:12px;right:12px;z-index:20;background:rgba(255,253,246,.92);border-radius:12px;
+    padding:6px 12px;font-weight:600;font-size:clamp(12px,1vw,16px);display:none
+  }
+  body.toon-beweging .p-legenda{display:block}
+
+  /* ---------- Toast ---------- */
+  #toast{
+    position:fixed;left:50%;bottom:24px;transform:translate(-50%,40px);opacity:0;z-index:50;
+    background:var(--inkt);color:#fff;padding:10px 18px;border-radius:999px;font-weight:600;
+    transition:all .3s;max-width:calc(100% - 32px);text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.3)
+  }
+  #toast.zicht{opacity:1;transform:translate(-50%,0)}
+  #toast.fout{background:#c92a2a}
+  body.presentatie #toast{bottom:64px}
+
+  /* ---------- Versie 2: vraag, zin, popup, reacties ---------- */
+  .vraag-balk{
+    background:var(--inkt);color:#fff;border-radius:14px;padding:10px 14px;margin-bottom:10px;
+    font-weight:700;font-size:1.05rem;line-height:1.3;box-shadow:0 6px 18px rgba(0,0,0,.2)
+  }
+  .vraag-kaart{
+    position:absolute;left:50%;top:10.2%;transform:translateX(-50%);max-width:62%;z-index:3;
+    background:var(--inkt);color:#fff;border-radius:999px;padding:.25em 1.1em;font-weight:700;
+    font-size:2cqw;line-height:1.25;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3);pointer-events:none
+  }
+  body:not(.presentatie) .vraag-kaart{display:none !important}
+  .zin-blok{margin-top:4px}
+  .zin-blok label{display:block;font-weight:700;margin-bottom:4px}
+  .zin-rij{display:flex;gap:8px;align-items:stretch}
+  .zin-rij textarea, .zin-rij input{
+    flex:1;min-width:0;padding:10px 12px;font-size:1rem;font-family:inherit;border:2px solid #d9e2e8;border-radius:12px;resize:vertical;color:var(--inkt)
+  }
+  .zin-rij textarea:focus, .zin-rij input:focus{outline:none;border-color:var(--zee2)}
+  .token.ander .bol{pointer-events:auto;cursor:pointer}
+  body.presentatie .token .bol{pointer-events:auto;cursor:pointer}
+  body.anoniem.presentatie .token .naam, body.anoniem .token.ander .naam{display:none}
+  #popup{
+    --size-pop:max(24px,3.2cqw);
+    position:absolute;z-index:10;background:var(--papier);border-radius:14px;padding:10px 12px;
+    box-shadow:0 8px 26px rgba(0,0,0,.35);min-width:170px;max-width:min(300px,80cqw);font-size:15px;line-height:1.3;
+  }
+  body.presentatie #popup{font-size:max(14px,1.35cqw);max-width:32cqw}
+  .pop-kop{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .bol-mini{
+    width:34px;height:34px;flex:none;border-radius:50%;background:#fff;border:3px solid var(--c,#ff7a59);
+    display:grid;place-items:center;font-size:1.1rem
+  }
+  .pop-zin{background:#eef4f7;border-radius:10px;padding:6px 9px;margin-top:6px;font-style:italic}
+  .pop-klein{color:var(--zacht);font-size:.85em;margin-top:6px}
+  .pop-reacties{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+  .pop-reacties button{font-size:1.5rem;width:42px;height:42px;border-radius:12px;border:2px solid #e3e9ee;background:#fff;cursor:pointer}
+  .pop-reacties button:active{transform:scale(.9)}
+  .zweef{
+    position:absolute;transform:translate(-50%,-50%);font-size:max(30px,4.2cqw);z-index:8;pointer-events:none;
+    animation:zweef 1.8s ease-out forwards
+  }
+  @keyframes zweef{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+    15%{opacity:1;transform:translate(-50%,-130%) scale(1.25)}
+    100%{opacity:0;transform:translate(-50%,-330%) scale(1)}
+  }
+  .token.geraakt .bol{animation:geraakt .8s ease-out !important}
+  @keyframes geraakt{
+    0%{transform:translate(-50%,-50%) scale(1);box-shadow:0 0 0 0 rgba(255,214,10,.9)}
+    40%{transform:translate(-50%,-50%) scale(1.35);box-shadow:0 0 0 14px rgba(255,214,10,.35)}
+    100%{transform:translate(-50%,-50%) scale(1);box-shadow:0 0 0 0 rgba(255,214,10,0)}
+  }
+
+  /* ---------- Timer ---------- */
+  .timer{
+    position:fixed;z-index:30;left:50%;top:8px;transform:translateX(-50%);background:var(--inkt);color:#fff;
+    font-weight:800;border-radius:999px;padding:4px 18px;font-size:1.35rem;box-shadow:0 4px 14px rgba(0,0,0,.3);
+    font-variant-numeric:tabular-nums
+  }
+  body:not(.presentatie) .timer{left:auto;top:auto;right:14px;bottom:14px;transform:none}
+  @media (max-width:520px){ .zin-rij{flex-direction:column} }
+  body.presentatie .timer{left:auto;right:12px;top:12px;transform:none;font-size:clamp(26px,3.6vw,72px);padding:.1em .6em}
+  .timer.bijna{background:#e8590c}
+  .timer.klaar{background:#e03131;animation:knipper .7s steps(2) infinite}
+  @keyframes knipper{50%{opacity:.55}}
+  .p-legenda{top:auto;right:auto;bottom:12px;left:50%;transform:translateX(-50%)}
+
+  /* ---------- Modal ---------- */
+  #modal{position:fixed;inset:0;z-index:40;background:rgba(0,30,50,.55);display:grid;place-items:center;padding:16px}
+  #modal[hidden]{display:none}
+  #modal .venster{
+    position:relative;background:var(--papier);border-radius:20px;width:100%;max-width:min(1100px,96vw);
+    max-height:90vh;overflow:auto;padding:22px 26px;box-shadow:0 20px 60px rgba(0,0,0,.4);font-size:1.05rem
+  }
+  #modal h2{margin:0 40px 10px 0;font-size:1.7rem;line-height:1.15}
+  #modal h2 small{display:block;font-size:1rem;color:var(--zacht);font-weight:600}
+  #modal h3{margin:16px 0 6px}
+  .sluit{position:absolute;top:12px;right:12px;padding:6px 12px}
+  .zin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+  .zin-kolom{background:#fff;border-radius:14px;padding:10px 12px;border-top:6px solid var(--c)}
+  .zin-kolom h3{margin:0 0 4px;color:var(--c);font-size:1.1rem}
+  .zin{background:#f2f6f8;border-radius:10px;padding:7px 10px;margin-top:6px;line-height:1.3}
+  .zin span{display:block;color:var(--zacht);font-size:.85em;margin-top:2px}
+  .tabel{width:100%;border-collapse:collapse;margin:6px 0}
+  .tabel th,.tabel td{padding:6px 8px;border-bottom:1px solid #e6ecef;text-align:left;vertical-align:top}
+  .tabel th{font-size:.9em;color:var(--zacht)}
+  .balk-rij{display:flex;align-items:center;gap:8px}
+  .balk{height:12px;border-radius:6px;background:var(--c);min-width:3px}
+  .plus{color:var(--groen);font-weight:800}.min{color:#c92a2a;font-weight:800}
+  .overgangen{margin:8px 0 0;padding-left:1.2em;line-height:1.6}
+  .samenvatting{font-size:1.15rem;font-weight:700;margin:0 0 6px}
+  .timer-knoppen{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+  .timer-knoppen .knop{font-size:1.2rem;padding:12px 22px}
+  .zone-edit{display:grid;grid-template-columns:56px 1.2fr 1.6fr 48px;gap:6px;align-items:center;margin-bottom:6px}
+  .zone-edit input{padding:8px 10px;font:inherit;font-size:.95rem;border:2px solid #d9e2e8;border-radius:10px;min-width:0;color:var(--inkt)}
+  .zone-edit input[type=color]{padding:2px;height:40px;width:48px;cursor:pointer}
+  .zone-edit .z-emoji{text-align:center;font-size:1.2rem}
+  .vink{display:flex;gap:10px;align-items:center;font-weight:600;margin:6px 0 10px;cursor:pointer}
+  .vink input{width:22px;height:22px}
+  .klein{color:var(--zacht);font-size:.9rem}
+
+  /* ---------- Logboek ---------- */
+  #logboekView{max-width:1100px;margin:0 auto;padding:0 12px 40px}
+  body.logboekmodus main, body.logboekmodus #kaartWrap, body.logboekmodus #statusKaart,
+  body.logboekmodus #presentatieUI{display:none !important}
+  body.logboekmodus .verbinding{display:none}
+  .lb-kop h1 span{color:var(--zacht);font-size:.7em}
+  .lb-h2{color:#fff;margin:18px 4px 8px;text-shadow:0 2px 4px rgba(0,0,0,.2)}
+  #logboekView .kaartje h3{margin:0 0 2px}
+  .scroll{overflow-x:auto}
+  .traject td{white-space:nowrap;text-align:center}
+  .traject td:first-child{text-align:left}
+  a.knop{text-decoration:none;display:inline-block}
+  details summary{cursor:pointer;font-weight:700}
+</style>
+</head>
+<body>
+
+<header id="kop">
+  <div class="logo">🏝️ Eiland van Leren &amp; Innoveren</div>
+  <div class="verbinding" id="verbinding"><i></i><span>verbinden…</span></div>
+</header>
+<div id="demoBanner" hidden>
+  🧪 <b>Demo-modus:</b> nog niet gekoppeld aan Supabase. Alles blijft in déze browser.
+  Test het door dit tabblad en een tabblad met <code>?view=presentatie</code> naast elkaar te openen.
+</div>
+
+<main>
+  <!-- Aanmelden -->
+  <section id="aanmelden" class="kaartje" hidden>
+    <form id="aanmeldForm" autocomplete="off">
+      <h1>Welkom op het eiland! 🏝️</h1>
+      <p>Vul je naam in en kies je poppetje. Daarna sleep je jezelf naar de plek die past bij hoe je je nu voelt.</p>
+      <label class="veld">Je naam
+        <input id="naamInput" maxlength="20" required placeholder="Bijv. Sanne" autocomplete="given-name">
+      </label>
+      <div class="veldlabel">Kies je poppetje</div>
+      <div id="avatarKeuze" class="avatar-grid"></div>
+      <div class="veldlabel">Kies je kleur</div>
+      <div id="kleurKeuze" class="kleur-rij"></div>
+      <div class="voorbeeld"><div class="bol-mini" id="voorbeeldBol">🦊</div><span id="voorbeeldTekst">Zo zie jij eruit op de kaart</span></div>
+      <button type="submit" class="knop groot" id="aanmeldKnop">Ga aan land ⛵</button>
+    </form>
+  </section>
+
+  <div id="vraagBalk" class="vraag-balk" hidden>❓ <span id="vraagTekst"></span></div>
+  <div id="instructie" hidden>
+    👆 Sleep <b>jouw poppetje</b> (met de witte stippelrand) naar de plek die past bij hoe jij je <b>nú</b> voelt. Je kunt ook gewoon op de kaart tikken.
+    <small>Tip: draai je telefoon een kwartslag voor een grotere kaart.</small>
+  </div>
+</main>
+
+<!-- De kaart (gedeeld door beide weergaven) -->
+<div id="kaartWrap">
+  <div id="kaartContainer">
+    <svg id="kaart" viewBox="0 0 1000 750" xmlns="http://www.w3.org/2000/svg" role="img"
+         aria-label="Kaart van het Eiland van Leren en Innoveren met vijf zones">
+      <defs>
+        <linearGradient id="zeeG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#3fb4d8"/><stop offset="1" stop-color="#1f7fb0"/>
+        </linearGradient>
+        <radialGradient id="landG" cx="50%" cy="40%" r="65%">
+          <stop offset="0" stop-color="#a6dc72"/><stop offset="1" stop-color="#5faf4c"/>
+        </radialGradient>
+        <radialGradient id="moerasG" cx="50%" cy="45%" r="60%">
+          <stop offset="0" stop-color="#7f9058"/><stop offset="1" stop-color="#566a3a"/>
+        </radialGradient>
+        <linearGradient id="bergG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#a8917a"/><stop offset="1" stop-color="#7a6552"/>
+        </linearGradient>
+        <linearGradient id="bergG2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#bda78e"/><stop offset="1" stop-color="#907a62"/>
+        </linearGradient>
+        <linearGradient id="zandG" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fbe7b5"/><stop offset="1" stop-color="#f1d08a"/>
+        </linearGradient>
+        <filter id="schaduw" x="-20%" y="-20%" width="140%" height="160%">
+          <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#00283f" flood-opacity=".3"/>
+        </filter>
+      </defs>
+
+      <!-- Zee -->
+      <rect width="1000" height="750" fill="url(#zeeG)"/>
+      <g id="golven" stroke="#fff" stroke-opacity=".4" stroke-width="3" fill="none" stroke-linecap="round"></g>
+
+      <!-- Eiland: ondiep water, strandrand, land -->
+      <path class="eilandvorm" fill="#bfeaf4" stroke="#a5e1f0" stroke-width="80" stroke-linejoin="round" opacity=".55"/>
+      <path class="eilandvorm" fill="#f3d9a0" stroke="#f3d9a0" stroke-width="30" stroke-linejoin="round"/>
+      <path class="eilandvorm" id="eilandLand" fill="url(#landG)"/>
+
+      <!-- Grasvlekjes -->
+      <g fill="#b9e58a" opacity=".5">
+        <ellipse cx="420" cy="260" rx="60" ry="22"/><ellipse cx="760" cy="380" rx="70" ry="20"/>
+        <ellipse cx="480" cy="560" rx="50" ry="16"/><ellipse cx="220" cy="230" rx="45" ry="16"/>
+      </g>
+
+      <!-- Strand van Ontspanning -->
+      <path d="M 585 655 C 600 585 680 525 785 515 C 855 508 895 470 908 445 C 922 540 882 642 745 662 C 670 675 630 668 585 655 Z" fill="url(#zandG)"/>
+
+      <!-- Paadjes tussen de zones -->
+      <g stroke="#b88a4a" stroke-width="5" stroke-dasharray="2 11" stroke-linecap="round" fill="none" opacity=".85">
+        <path d="M 290 345 C 280 390 290 430 265 470"/>
+        <path d="M 360 320 C 400 350 440 400 500 430"/>
+        <path d="M 640 300 C 700 262 760 252 805 242"/>
+        <path d="M 640 440 C 660 480 690 510 720 530"/>
+        <path d="M 385 575 C 450 612 540 620 610 600"/>
+      </g>
+
+      <!-- Bomen (worden via script geplaatst) -->
+      <g id="bomen"></g>
+
+      <!-- Moeras van Twijfel -->
+      <g>
+        <path d="M150 470 C200 430 320 440 370 490 C410 540 380 620 300 630 C220 640 150 610 140 560 C135 520 130 490 150 470Z" fill="url(#moerasG)"/>
+        <g fill="#4d726c" opacity=".9">
+          <ellipse cx="220" cy="515" rx="42" ry="16"/><ellipse cx="320" cy="560" rx="36" ry="14"/><ellipse cx="185" cy="580" rx="26" ry="10"/>
+        </g>
+        <g fill="#7fa59d" opacity=".6">
+          <ellipse cx="212" cy="511" rx="14" ry="4"/><ellipse cx="312" cy="556" rx="11" ry="3"/>
+        </g>
+        <g stroke="#3f5a2a" stroke-width="3" stroke-linecap="round">
+          <line x1="165" y1="505" x2="162" y2="478"/><line x1="172" y1="505" x2="176" y2="474"/>
+          <line x1="360" y1="525" x2="356" y2="498"/><line x1="367" y1="525" x2="371" y2="500"/>
+          <line x1="262" y1="590" x2="259" y2="565"/><line x1="269" y1="590" x2="273" y2="566"/>
+        </g>
+        <g fill="#6b4226">
+          <ellipse cx="162" cy="478" rx="3.5" ry="8"/><ellipse cx="176" cy="474" rx="3.5" ry="8"/>
+          <ellipse cx="356" cy="498" rx="3.5" ry="8"/><ellipse cx="371" cy="500" rx="3.5" ry="8"/>
+          <ellipse cx="259" cy="565" rx="3.5" ry="8"/><ellipse cx="273" cy="566" rx="3.5" ry="8"/>
+        </g>
+        <g fill="#e9f2d0" opacity=".8" font-family="Baloo 2, sans-serif" font-weight="800">
+          <text x="252" y="492" font-size="34">?</text><text x="335" y="528" font-size="26">?</text>
+          <text x="205" y="560" font-size="22">?</text><text x="300" y="610" font-size="18">?</text>
+        </g>
+        <g fill="#fff" opacity=".2">
+          <ellipse cx="240" cy="498" rx="80" ry="10"/><ellipse cx="300" cy="585" rx="70" ry="9"/>
+        </g>
+      </g>
+
+      <!-- Basiskamp -->
+      <g>
+        <ellipse cx="300" cy="292" rx="112" ry="72" fill="#c8eb9c" opacity=".85"/>
+        <path d="M232 305 L268 248 L304 305 Z" fill="#ff8c42"/><path d="M268 248 L304 305 L268 305 Z" fill="#e0702a"/>
+        <path d="M260 305 L268 280 L276 305 Z" fill="#7a3b12"/>
+        <path d="M312 288 L342 238 L372 288 Z" fill="#4dabf7"/><path d="M342 238 L372 288 L342 288 Z" fill="#2f8fd8"/>
+        <path d="M335 288 L342 266 L349 288 Z" fill="#164a72"/>
+        <g transform="translate(300 332)">
+          <line x1="-14" y1="6" x2="14" y2="-2" stroke="#7a4a1f" stroke-width="6" stroke-linecap="round"/>
+          <line x1="-14" y1="-2" x2="14" y2="6" stroke="#8b5a2b" stroke-width="6" stroke-linecap="round"/>
+          <path d="M0 -26 C10 -14 10 -4 0 2 C-10 -4 -10 -14 0 -26 Z" fill="#ff922b"/>
+          <path d="M0 -16 C5 -9 5 -3 0 1 C-5 -3 -5 -9 0 -16 Z" fill="#ffe066"/>
+        </g>
+        <line x1="395" y1="300" x2="395" y2="240" stroke="#6b4226" stroke-width="4" stroke-linecap="round"/>
+        <path d="M397 242 L425 251 L397 260 Z" fill="#ff6b6b"/>
+      </g>
+
+      <!-- Steile Pad (berg) -->
+      <g>
+        <path d="M 530 435 L 655 245 L 775 435 Z" fill="url(#bergG2)"/>
+        <path d="M 655 245 L 775 435 L 680 435 Z" fill="#000" opacity=".12"/>
+        <path d="M655 245 L 675 275 L 664 270 L 655 280 L 646 270 L 635 275 Z" fill="#fff"/>
+        <path d="M 440 435 L 575 190 L 710 435 Z" fill="url(#bergG)"/>
+        <path d="M 575 190 L 710 435 L 600 435 Z" fill="#000" opacity=".12"/>
+        <path d="M575 190 L 602 239 L 588 233 L 576 246 L 563 233 L 548 239 Z" fill="#fff"/>
+        <path d="M 500 430 L 610 405 L 535 368 L 620 335 L 560 298 L 600 262 L 580 225" fill="none"
+              stroke="#fff3d6" stroke-width="5" stroke-dasharray="9 7" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="575" y1="190" x2="575" y2="156" stroke="#5b3a1a" stroke-width="3"/>
+        <path d="M576 157 L598 165 L576 173 Z" fill="#ff6b6b"/>
+      </g>
+
+      <!-- Vuurtoren van Overzicht -->
+      <g>
+        <polygon points="836,141 690,95 690,170" fill="#fff59d" opacity=".45"/>
+        <polygon points="836,141 990,100 990,180" fill="#fff59d" opacity=".45"/>
+        <ellipse cx="836" cy="232" rx="48" ry="18" fill="#8a8f98"/>
+        <ellipse cx="876" cy="222" rx="25" ry="12" fill="#9aa0a8"/>
+        <ellipse cx="798" cy="240" rx="22" ry="11" fill="#7d828a"/>
+        <path d="M 820 230 L 826 155 L 846 155 L 852 230 Z" fill="#fff"/>
+        <path d="M 821 217 L 822 205 L 850 205 L 851 217 Z" fill="#e03131"/>
+        <path d="M 823 192 L 824 180 L 848 180 L 849 192 Z" fill="#e03131"/>
+        <rect x="822" y="149" width="28" height="6" rx="2" fill="#343a40"/>
+        <rect x="828" y="133" width="16" height="16" fill="#ffe066" stroke="#343a40" stroke-width="2"/>
+        <path d="M 824 133 L 836 118 L 848 133 Z" fill="#c92a2a"/>
+        <rect x="832" y="214" width="8" height="16" rx="3" fill="#6b4226"/>
+      </g>
+
+      <!-- Strand-decoratie -->
+      <g>
+        <path d="M 850 602 C 845 572 848 542 860 517" stroke="#8b5a2b" stroke-width="9" stroke-linecap="round" fill="none"/>
+        <g stroke="#2f9e44" stroke-width="9" stroke-linecap="round" fill="none">
+          <path d="M860 517 C 840 497 815 497 800 507"/><path d="M860 517 C 875 492 900 490 915 502"/>
+          <path d="M860 517 C 850 492 852 477 862 467"/><path d="M860 517 C 880 507 900 517 905 532"/>
+          <path d="M860 517 C 840 512 825 524 820 537"/>
+        </g>
+        <circle cx="856" cy="522" r="5" fill="#6b4226"/><circle cx="865" cy="523" r="5" fill="#6b4226"/>
+        <path d="M 640 600 C 637 585 639 570 646 558" stroke="#8b5a2b" stroke-width="7" stroke-linecap="round" fill="none"/>
+        <g stroke="#37b24d" stroke-width="7" stroke-linecap="round" fill="none">
+          <path d="M646 558 C 632 546 616 547 607 553"/><path d="M646 558 C 656 542 672 542 682 550"/>
+          <path d="M646 558 C 640 542 642 533 649 527"/>
+        </g>
+        <line x1="735" y1="590" x2="735" y2="545" stroke="#5b3a1a" stroke-width="3"/>
+        <path d="M 703 550 Q 735 515 767 550 Z" fill="#ff6b6b"/>
+        <path d="M 719 550 Q 735 520 735 520 Q 735 520 751 550 Z" fill="#fff" opacity=".9"/>
+        <rect x="760" y="560" width="42" height="22" rx="3" fill="#48dbfb" transform="rotate(-10 781 571)"/>
+        <rect x="760" y="567" width="42" height="5" fill="#fff" opacity=".8" transform="rotate(-10 781 571)"/>
+        <circle cx="702" cy="592" r="9" fill="#feca57"/><path d="M693 592 h18" stroke="#ff6b6b" stroke-width="3"/>
+        <g fill="#ffa8a8"><circle cx="820" cy="600" r="4"/><circle cx="672" cy="628" r="3"/><circle cx="880" cy="590" r="3"/></g>
+      </g>
+
+      <!-- Bootje = startplek -->
+      <g>
+        <path d="M 48 100 L 118 100 L 106 116 L 60 116 Z" fill="#8b5a2b"/>
+        <line x1="82" y1="100" x2="82" y2="48" stroke="#5b3a1a" stroke-width="3"/>
+        <path d="M 85 52 L 85 96 L 115 96 Z" fill="#fff"/>
+        <path d="M 82 48 L 96 52 L 82 56 Z" fill="#ff6b6b"/>
+        <g transform="translate(83 142)" filter="url(#schaduw)">
+          <rect x="-48" y="-14" width="96" height="28" rx="14" fill="#fffdf6"/>
+          <text y="6" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="16" fill="#1d3b4f">⛵ Start</text>
+        </g>
+      </g>
+
+      <!-- Wolkjes -->
+      <g fill="#fff" opacity=".85">
+        <ellipse cx="190" cy="48" rx="34" ry="14"/><ellipse cx="214" cy="40" rx="24" ry="14"/><ellipse cx="168" cy="44" rx="18" ry="10"/>
+        <ellipse cx="880" cy="40" rx="34" ry="13"/><ellipse cx="905" cy="34" rx="22" ry="12"/>
+      </g>
+
+      <!-- Kompas -->
+      <g transform="translate(70 680)">
+        <circle r="32" fill="#fffdf6" opacity=".92"/>
+        <path d="M0 -25 L7 0 L0 25 L-7 0 Z" fill="#1d3b4f"/><path d="M0 -25 L7 0 L-7 0 Z" fill="#e03131"/>
+        <text y="-35" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="16" fill="#fff">N</text>
+      </g>
+
+      <!-- Titelbanner -->
+      <g filter="url(#schaduw)">
+        <rect x="250" y="14" width="500" height="52" rx="26" fill="#fffdf6" stroke="#1f7fb0" stroke-width="3"/>
+        <text x="500" y="49" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="27" fill="#1d4e6b">🏝️ Het Eiland van Leren &amp; Innoveren</text>
+      </g>
+
+      <!-- Zonelabels (via script, zodat de breedte klopt) -->
+      <g id="labels"></g>
+    </svg>
+
+    <!-- Bewegingslaag: check-in → nu -->
+    <svg class="beweging" viewBox="0 0 1000 750" xmlns="http://www.w3.org/2000/svg"><g id="bewegingLijnen"></g></svg>
+
+    <!-- Poppetjes -->
+    <div id="tokens"></div>
+    <div id="vraagKaart" class="vraag-kaart" hidden></div>
+    <div id="popup" hidden></div>
+  </div>
+</div>
+
+<!-- Status (student) -->
+<section id="statusKaart" hidden>
+  <div class="kaartje">
+    <div class="status-rij">
+      <div class="bol-mini" id="statusBol">🦊</div>
+      <div>
+        <div>Hoi <b id="statusNaam"></b>! <span class="opgeslagen" id="opgeslagen">✓ Opgeslagen</span></div>
+        <div class="zonetekst">📍 Je staat nu: <b id="statusZone">–</b></div>
+      </div>
+    </div>
+    <div class="checkin-info" id="checkinInfo"></div>
+    <div class="zin-blok">
+      <label for="zinInput" id="zinLabel">💬 Waarom sta je hier? Vertel het in één zin.</label>
+      <div class="zin-rij">
+        <textarea id="zinInput" maxlength="140" rows="2" placeholder="Bijv. Ik twijfel nog welke onderzoeksvraag ik kies…"></textarea>
+        <button class="knop" id="zinKnop" type="button">Opslaan</button>
+      </div>
+    </div>
+    <div class="checkin-info">👋 Tik op het poppetje van een medestudent om een reactie te sturen.</div>
+    <div class="knoppenrij">
+      <button class="knop licht" id="wijzigKnop" type="button">✏️ Naam of poppetje wijzigen</button>
+      <a href="?view=presentatie" id="presentatieLink">📺 Presentatie-weergave</a>
+    </div>
+  </div>
+</section>
+
+<!-- Presentatie-bediening -->
+<div id="presentatieUI">
+  <div class="p-bediening">
+    <span class="p-teller" id="teller"><i></i><span id="tellerTekst">👥 0 op het eiland</span></span>
+    <button id="knopCheckin" title="Leg de huidige posities vast als check-in (ook in het logboek)">📌 Check-in vastleggen</button>
+    <button id="knopCheckout" title="Leg de huidige posities vast als check-out (ook in het logboek)">🏁 Check-out vastleggen</button>
+    <button id="knopBeweging" aria-pressed="false" title="Laat zien waar iedereen bij de check-in stond">👣 Toon beweging</button>
+    <button id="knopOverzicht">📊 Groepsoverzicht</button>
+    <button id="knopZinnen">💬 Zinnen</button>
+    <button id="knopTimer">⏱ Timer</button>
+    <button id="knopAnoniem" aria-pressed="false">🙈 Anoniem</button>
+    <button id="knopInstellingen">⚙️ Vraag, zones &amp; groep</button>
+    <button id="knopLogboek">📒 Logboek</button>
+    <button id="knopFull">⛶ Volledig scherm</button>
+    <button id="knopWis" title="Verwijder alle poppetjes (bijv. voor een nieuwe les)">🧹 Alles wissen</button>
+  </div>
+  <div class="p-legenda">◌ stippel = check-in &nbsp;➜ pijl = nu</div>
+  <div class="p-telling" id="telling"></div>
+  <div class="p-qr">
+    <div class="p-qr-titel">Doe mee! 📱</div>
+    <img id="qrImg" alt="QR-code om mee te doen">
+    <div class="p-qr-url" id="qrUrl"></div>
+  </div>
+</div>
+
+<!-- Logboek-weergave (?view=logboek) -->
+<section id="logboekView" hidden>
+  <div class="kaartje lb-kop">
+    <h1>📒 Logboek <span id="lbGroep"></span></h1>
+    <p>Elke keer dat je op de beamer op <b>📌 Check-in vastleggen</b> of <b>🏁 Check-out vastleggen</b> klikt, wordt de stand hier bewaard.</p>
+    <div class="knoppenrij">
+      <button class="knop" id="lbCsv" type="button">⬇️ Download voor Excel</button>
+      <button class="knop licht" id="lbVernieuw" type="button">🔄 Vernieuwen</button>
+      <a class="knop licht" id="lbTerug" href="?view=presentatie">📺 Terug naar presentatie</a>
+      <button class="knop licht" id="lbWis" type="button">🗑 Logboek wissen</button>
+    </div>
+  </div>
+  <div id="lbInhoud"></div>
+</section>
+
+<div id="timer" class="timer" hidden></div>
+
+<div id="modal" hidden>
+  <div class="venster">
+    <button class="knop licht sluit" id="modalSluit" type="button" aria-label="Sluiten">✕</button>
+    <div id="modalInhoud"></div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =====================================================================
+   Vanaf hier hoef je niets aan te passen.
+   ===================================================================== */
+const DEMO = !/^https?:\/\//.test(SUPABASE_URL) || SUPABASE_KEY.startsWith('PLAK_HIER');
+const OPSLAG_IK = 'eiland_ik_v1';
+const START = { x: 8.3, y: 12.5 }; // het bootje
+
+const params = new URLSearchParams(location.search);
+const VIEW = (params.get('view') || '').toLowerCase();
+const isPresentatie = ['presentatie', 'beamer', 'presentation'].includes(VIEW);
+const isLogboek = VIEW === 'logboek';
+const KAMER = (params.get('kamer') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 30) || 'standaard';
+const kamerParam = KAMER === 'standaard' ? '' : '&kamer=' + encodeURIComponent(KAMER);
+
+const AVATARS = ['🦊','🐼','🐸','🦉','🐙','🦄','🐢','🐝','🦁','🐧','🦋','🐳','🐨','🦔','🐞','🦩','🐯','🐰','🐻','🐲','🌻','🍄','🚀','⭐'];
+const KLEUREN = ['#ff6b6b','#ff9f43','#f7b731','#20bf6b','#0fb9b1','#2d98da','#8854d0','#eb3b9a','#4b6584'];
+const REACTIES = ['👏','💡','🤝','💪','❤️','😂'];
+
+const EILAND_D = 'M 160 330 C 130 220 230 135 360 140 C 470 145 530 100 645 105 C 765 110 875 95 905 185 C 930 265 880 335 900 425 C 920 525 880 640 745 662 C 625 682 520 650 420 667 C 290 688 150 652 127 545 C 108 455 182 425 160 330 Z';
+
+const ZONE_BASIS = [
+  { id:'moeras',    naam:'Het Moeras van Twijfel',     emoji:'❓', kleur:'#56683a', sub:'zoekend · onzeker · veel vragen',          x:26.5, y:72, lx:262, ly:642 },
+  { id:'basiskamp', naam:'Het Basiskamp',              emoji:'⛺', kleur:'#c0632b', sub:'veilig · rustig · klaar om te starten',     x:30,   y:39, lx:300, ly:390 },
+  { id:'pad',       naam:'Het Steile Pad',             emoji:'🧗', kleur:'#7a5c3e', sub:'hard aan het werk · uitdagend',             x:59,   y:44, lx:590, ly:472 },
+  { id:'vuurtoren', naam:'De Vuurtoren van Overzicht', emoji:'💡', kleur:'#c92a2a', sub:'helderheid · richting · nieuwe inzichten',  x:83.5, y:27, lx:810, ly:290 },
+  { id:'strand',    naam:'Het Strand van Ontspanning', emoji:'🏖️', kleur:'#b07d00', sub:'energiek · tevreden · even opladen',        x:76,   y:78, lx:762, ly:636 },
+];
+let ZONES = ZONE_BASIS.map(z => ({ ...z }));
+const ZEE = { id:'zee', naam:'Op de boot / op zee', emoji:'⛵', kleur:'#1f7fb0' };
+const kort = z => z.id === 'zee' ? 'Nog op zee' : String(z.naam).replace(/^(het|de)\s+/i, '').replace(/\s+van\s+.*$/i, '');
+const zoneOpId = id => ZONES.find(z => z.id === id) || ZEE;
+
+/* ---------- Hulpjes ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const klem = (v, a, b) => Math.min(b, Math.max(a, v));
+const veiligeKleur = c => /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#ff7a59';
+function tekstKleur(hex){
+  const n = parseInt(veiligeKleur(hex).slice(1), 16);
+  const r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  return (r * 299 + g * 587 + b * 114) / 1000 > 165 ? '#1d3b4f' : '#fff';
+}
+function nieuwId(){
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+  });
+}
+function vandaag(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function datumNL(s, opties = { weekday:'long', day:'numeric', month:'long', year:'numeric' }){
+  try { return new Date(s + 'T12:00:00').toLocaleDateString('nl-NL', opties); } catch (e) { return s; }
+}
+let toastTimer, laatsteFoutToast = 0;
+function toast(tekst, fout = false){
+  const el = $('#toast');
+  if (fout){ if (Date.now() - laatsteFoutToast < 20000) return; laatsteFoutToast = Date.now(); }
+  el.textContent = tekst; el.classList.toggle('fout', fout); el.classList.add('zicht');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('zicht'), fout ? 7000 : 3800);
+}
+function uitlegFout(e){
+  const m = String((e && (e.message || e.hint || e.details)) || e || '');
+  const l = m.toLowerCase();
+  if (/secret/.test(l)) return 'Je gebruikt de SECRET key. Gebruik de Publishable key (sb_publishable_…).';
+  if (/api key|apikey|jwt|unauthorized|401/.test(l)) return 'De sleutel klopt niet. Kopieer de Publishable key opnieuw.';
+  if (/column|instellingen|logboek|on conflict|unique or exclusion/.test(l)) return 'De database moet worden bijgewerkt: voer de nieuwe supabase.sql uit in de SQL Editor.';
+  if (/does not exist|schema cache|relation|could not find the table|404/.test(l)) return 'Tabel niet gevonden. Voer supabase.sql uit in de SQL Editor (in hetzelfde project als je URL/sleutel).';
+  if (/permission denied|row-level security|42501|403/.test(l)) return 'Geen toegang tot de tabel. Voer supabase.sql opnieuw helemaal uit.';
+  if (/failed to fetch|network|load failed|err_name/.test(l)) return 'Supabase-adres niet bereikbaar. Controleer de Project URL (https://xxxx.supabase.co), of het project gepauzeerd is.';
+  return 'Geen verbinding met de database: ' + m.slice(0, 140);
+}
+function zoneVan(x, y){
+  let opLand = true;
+  try { opLand = $('#eilandLand').isPointInFill(new DOMPoint(x * 10, y * 7.5)); } catch (e) {}
+  if (!opLand) return ZEE;
+  let beste = ZONES[0], d = Infinity;
+  for (const z of ZONES){ const dz = Math.hypot((z.x - x) * 1.33, z.y - y); if (dz < d){ d = dz; beste = z; } }
+  return beste;
+}
+function beschrijfOvergang(a, b, n){
+  const za = zoneOpId(a), zb = zoneOpId(b);
+  return a === b
+    ? `<b>${n}×</b> bleef bij ${esc(za.emoji + ' ' + kort(za))}`
+    : `<b>${n}×</b> ${esc(za.emoji + ' ' + kort(za))} → ${esc(zb.emoji + ' ' + kort(zb))}`;
+}
+
+/* ---------- Kaartdecoratie ---------- */
+function bouwKaart(){
+  document.querySelectorAll('.eilandvorm').forEach(p => p.setAttribute('d', EILAND_D));
+  const golven = [[60,250],[95,400],[45,520],[220,722],[410,718],[610,722],[945,300],[955,560],[880,712],[200,100],[720,78],[960,420],[30,640],[540,735]];
+  $('#golven').innerHTML = golven.map(([x,y]) => `<path d="M${x} ${y} q8 -7 16 0 t16 0 t16 0"/>`).join('');
+  const bomen = [[420,178],[455,162],[492,184],[440,210],[388,168],[285,192],[250,215],[200,300],[178,355],[215,420],
+                 [420,300],[447,332],[405,425],[470,520],[505,555],[540,520],[470,610],[862,332],[866,388],[842,425],[765,470],[722,452]];
+  $('#bomen').innerHTML = bomen.map(([x,y]) =>
+    `<ellipse cx="${x+3}" cy="${y+14}" rx="15" ry="5" fill="#000" opacity=".12"/>
+     <circle cx="${x}" cy="${y}" r="17" fill="#3e8e41"/><circle cx="${x-5}" cy="${y-5}" r="8" fill="#63b95b"/>`).join('');
+}
+function tekenLabels(){
+  const c = document.createElement('canvas').getContext('2d');
+  $('#labels').innerHTML = ZONES.map(z => {
+    const titel = `${z.emoji} ${z.naam}`;
+    c.font = "800 22px 'Baloo 2', system-ui, sans-serif"; const w1 = c.measureText(titel).width;
+    c.font = "600 15px 'Baloo 2', system-ui, sans-serif"; const w2 = c.measureText(z.sub || '').width;
+    const w = Math.max(w1, w2) + 34, h = z.sub ? 58 : 42;
+    return `<g transform="translate(${z.lx} ${z.ly})" filter="url(#schaduw)">
+      <rect x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" rx="17" fill="#fffdf6" stroke="${z.kleur}" stroke-width="3"/>
+      <text y="${z.sub ? -3 : 8}" text-anchor="middle" class="lt" fill="${z.kleur}">${esc(titel)}</text>
+      ${z.sub ? `<text y="19" text-anchor="middle" class="ls">${esc(z.sub)}</text>` : ''}</g>`;
+  }).join('');
+}
+
+/* ---------- Database: Supabase of demo ---------- */
+function maakSupabaseDb(){
+  if (!window.supabase) throw new Error('Supabase-bibliotheek niet geladen');
+  const url = SUPABASE_URL.trim().replace(/\/(rest|realtime|auth)\/v1.*$/i, '').replace(/\/+$/, '');
+  const sb = window.supabase.createClient(url, SUPABASE_KEY.trim(), { realtime: { params: { eventsPerSecond: 20 } } });
+  const check = ({ error }) => { if (error) throw error; };
+  let kanaal = null;
+  return {
+    async alles(){
+      const { data, error } = await sb.from('deelnemers').select('*').eq('kamer', KAMER);
+      if (error) throw error; return data || [];
+    },
+    async opslaan(rij){ check(await sb.from('deelnemers').upsert({ ...rij, kamer: KAMER }, { onConflict: 'kamer,id' })); },
+    async wijzig(id, patch){ check(await sb.from('deelnemers').update(patch).eq('kamer', KAMER).eq('id', id)); },
+    async startVastleggen(rijen){
+      if (!rijen.length) return;
+      check(await sb.from('deelnemers').upsert(
+        rijen.map(r => ({ ...r, kamer: KAMER, start_x: r.x, start_y: r.y, start_zin: r.zin ?? null, start_vast: true })),
+        { onConflict: 'kamer,id' }));
+    },
+    async allesWissen(){ check(await sb.from('deelnemers').delete().eq('kamer', KAMER)); },
+    async leesInstellingen(){
+      const { data, error } = await sb.from('instellingen').select('*').eq('kamer', KAMER).maybeSingle();
+      if (error) throw error; return data;
+    },
+    async bewaarInstellingen(p){
+      check(await sb.from('instellingen').upsert({ kamer: KAMER, ...p, bijgewerkt: new Date().toISOString() }, { onConflict: 'kamer' }));
+    },
+    async logVervang(les, moment, rijen){
+      check(await sb.from('logboek').delete().eq('kamer', KAMER).eq('les', les).eq('moment', moment));
+      if (rijen.length) check(await sb.from('logboek').insert(rijen));
+    },
+    async logAlles(){
+      const { data, error } = await sb.from('logboek').select('*').eq('kamer', KAMER)
+        .order('les', { ascending: true }).order('gemaakt', { ascending: true });
+      if (error) throw error; return data || [];
+    },
+    async logWissen(){ check(await sb.from('logboek').delete().eq('kamer', KAMER)); },
+    luister({ deelnemer, instelling, reactie, status }){
+      kanaal = sb.channel('eiland-' + KAMER, { config: { broadcast: { self: false } } })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'deelnemers' }, p => {
+          const r = (p.new && p.new.id) ? p.new : p.old;
+          if (r && r.kamer && r.kamer !== KAMER) return;
+          deelnemer(p);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'instellingen' }, p => {
+          if (p.new && p.new.kamer === KAMER) instelling(p.new);
+        })
+        .on('broadcast', { event: 'reactie' }, m => reactie(m.payload))
+        .subscribe(s => status(s));
+    },
+    stuurReactie(p){ kanaal && kanaal.send({ type: 'broadcast', event: 'reactie', payload: p }); }
+  };
+}
+function maakDemoDb(){
+  const K = { d: 'eiland_demo_d_' + KAMER, i: 'eiland_demo_i_' + KAMER, l: 'eiland_demo_l_' + KAMER };
+  const lokaal = [];
+  const bc = ('BroadcastChannel' in window) ? new BroadcastChannel('eiland_demo_' + KAMER) : null;
+  const lees = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+  const schrijf = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} lokaal.forEach(f => f(k)); };
+  return {
+    async alles(){ return Object.values(lees(K.d) || {}); },
+    async opslaan(r){ const o = lees(K.d) || {}; o[r.id] = { ...(o[r.id] || {}), ...r, kamer: KAMER }; schrijf(K.d, o); },
+    async wijzig(id, p){ const o = lees(K.d) || {}; if (o[id]){ o[id] = { ...o[id], ...p }; schrijf(K.d, o); } },
+    async startVastleggen(rijen){
+      const o = lees(K.d) || {};
+      rijen.forEach(r => { if (o[r.id]) Object.assign(o[r.id], { start_x: r.x, start_y: r.y, start_zin: r.zin ?? null, start_vast: true }); });
+      schrijf(K.d, o);
+    },
+    async allesWissen(){ schrijf(K.d, {}); },
+    async leesInstellingen(){ return lees(K.i); },
+    async bewaarInstellingen(p){ schrijf(K.i, { ...(lees(K.i) || {}), ...p, kamer: KAMER }); },
+    async logVervang(les, moment, rijen){
+      const l = (lees(K.l) || []).filter(x => !(x.les === les && x.moment === moment));
+      rijen.forEach(r => l.push({ ...r, id: nieuwId(), gemaakt: new Date().toISOString() }));
+      schrijf(K.l, l);
+    },
+    async logAlles(){ return lees(K.l) || []; },
+    async logWissen(){ schrijf(K.l, []); },
+    luister({ deelnemer, instelling, reactie, status }){
+      const f = k => { if (k === K.d) deelnemer({ type: 'refresh' }); else if (k === K.i) instelling(lees(K.i)); };
+      addEventListener('storage', e => f(e.key));
+      lokaal.push(f);
+      if (bc) bc.onmessage = e => reactie(e.data);
+      status('DEMO');
+    },
+    stuurReactie(p){ bc && bc.postMessage(p); }
+  };
+}
+
+/* ---------- Toestand ---------- */
+let db, rijen = new Map(), ik = null, sleep = null, bezigMetAanmaken = false;
+let inst = { vraag: '', zones: null, anoniem: false, timer_eind: null };
+let popupId = null, modalType = null;
+const tokens = new Map();
+
+function laadIk(){ try { return JSON.parse(localStorage.getItem(OPSLAG_IK)); } catch (e) { return null; } }
+function bewaarIk(){ try { localStorage.setItem(OPSLAG_IK, JSON.stringify(ik)); } catch (e) {} }
+
+function zetVerbinding(s){
+  const ok = s === 'SUBSCRIBED' || s === 'DEMO';
+  const fout = ['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(s);
+  const tekst = s === 'DEMO' ? 'demo-modus' : ok ? 'live' : fout ? 'geen live-verbinding' : 'verbinden…';
+  for (const el of [$('#verbinding'), $('#teller')]){ el.classList.toggle('ok', ok); el.classList.toggle('fout', fout); }
+  $('#verbinding span').textContent = tekst;
+}
+
+async function herlaad(){
+  try {
+    const data = await db.alles();
+    const nieuw = new Map(data.map(r => [r.id, r]));
+    if (sleep && ik && rijen.has(ik.id) && nieuw.has(ik.id)){
+      const m = rijen.get(ik.id); nieuw.set(ik.id, { ...nieuw.get(ik.id), x: m.x, y: m.y });
+    }
+    rijen = nieuw; render();
+    if (!isPresentatie && ik && !rijen.has(ik.id)) await maakMijnRij();
+  } catch (e) {
+    console.error(e);
+    toast('⚠️ ' + uitlegFout(e), true);
+    zetVerbinding('CHANNEL_ERROR');
+  }
+}
+function verwerk(p){
+  if (p.type === 'refresh') return herlaad();
+  if (p.eventType === 'DELETE'){
+    const id = p.old && p.old.id; rijen.delete(id); render();
+    if (!isPresentatie && ik && id === ik.id) maakMijnRij();
+    return;
+  }
+  const r = p.new; if (!r || !r.id) return;
+  if (sleep && ik && r.id === ik.id){ const m = rijen.get(r.id) || r; rijen.set(r.id, { ...r, x: m.x, y: m.y }); }
+  else rijen.set(r.id, r);
+  render();
+}
+
+/* ---------- Instellingen (vraag, zones, anoniem, timer) ---------- */
+async function laadInstellingen(stil = false){
+  try {
+    const d = await db.leesInstellingen();
+    if (d) inst = { ...inst, ...d };
+    pasInstellingenToe();
+  } catch (e) {
+    console.error(e);
+    if (!stil) toast('⚠️ ' + uitlegFout(e), true);
+  }
+}
+function verwerkInstelling(r){ if (!r) return; inst = { ...inst, ...r }; pasInstellingenToe(); }
+async function bewaarInst(p){
+  inst = { ...inst, ...p }; pasInstellingenToe();
+  try { await db.bewaarInstellingen(p); }
+  catch (e) { console.error(e); toast('⚠️ ' + uitlegFout(e), true); }
+}
+function pasInstellingenToe(){
+  ZONES = ZONE_BASIS.map((z, i) => {
+    const e = Array.isArray(inst.zones) ? inst.zones[i] : null;
+    if (!e || typeof e !== 'object') return { ...z };
+    return {
+      ...z,
+      naam: String(e.naam || '').trim().slice(0, 40) || z.naam,
+      sub: typeof e.sub === 'string' ? e.sub.trim().slice(0, 60) : z.sub,
+      emoji: String(e.emoji || '').trim().slice(0, 4) || z.emoji,
+      kleur: /^#[0-9a-f]{6}$/i.test(e.kleur || '') ? e.kleur : z.kleur,
+    };
+  });
+  tekenLabels();
+  document.body.classList.toggle('anoniem', !!inst.anoniem);
+  $('#knopAnoniem').setAttribute('aria-pressed', !!inst.anoniem);
+  const v = String(inst.vraag || '').trim();
+  $('#vraagBalk').hidden = !v || isPresentatie || isLogboek;
+  $('#vraagTekst').textContent = v;
+  $('#vraagKaart').hidden = !v;
+  $('#vraagKaart').textContent = '❓ ' + v;
+  $('#zinLabel').textContent = v ? `💬 Jouw antwoord op de vraag, in één zin:` : '💬 Waarom sta je hier? Vertel het in één zin.';
+  startTimerLus();
+  render();
+}
+
+/* ---------- Timer ---------- */
+let timerLus = null;
+function startTimerLus(){ clearInterval(timerLus); tikTimer(); timerLus = setInterval(tikTimer, 250); }
+function tikTimer(){
+  const el = $('#timer');
+  const eind = inst.timer_eind ? new Date(inst.timer_eind).getTime() : 0;
+  const rest = eind - Date.now();
+  if (!eind || isLogboek || rest < -8000){ el.hidden = true; clearInterval(timerLus); return; }
+  el.hidden = false;
+  if (rest <= 0){ el.textContent = '⏰ Tijd!'; el.classList.add('klaar'); el.classList.remove('bijna'); return; }
+  const s = Math.ceil(rest / 1000);
+  el.textContent = '⏱ ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  el.classList.remove('klaar'); el.classList.toggle('bijna', s <= 10);
+}
+
+/* ---------- Tekenen ---------- */
+function render(){
+  const gezien = new Set();
+  for (const r of rijen.values()){
+    if (typeof r.x !== 'number' || typeof r.y !== 'number') continue;
+    gezien.add(r.id);
+    let el = tokens.get(r.id);
+    if (!el){ el = maakToken(r); tokens.set(r.id, el); $('#tokens').appendChild(el); }
+    werkTokenBij(el, r);
+  }
+  for (const [id, el] of tokens) if (!gezien.has(id)){ el.remove(); tokens.delete(id); }
+  werkPopupBij();
+  if (isPresentatie){
+    tekenBeweging(); tekenTelling();
+    if (modalType === 'zinnen' || modalType === 'overzicht') vulModal();
+  } else werkStatusBij();
+}
+function maakToken(r){
+  const el = document.createElement('div');
+  el.className = 'token nieuw';
+  el.dataset.id = r.id;
+  el.innerHTML = '<div class="bol"></div><div class="naam"></div>';
+  setTimeout(() => el.classList.remove('nieuw'), 600);
+  if (!isPresentatie){
+    if (ik && r.id === ik.id){ el.classList.add('mijn'); koppelSlepen(el); }
+    else el.classList.add('ander');
+  }
+  return el;
+}
+function werkTokenBij(el, r){
+  const c = veiligeKleur(r.kleur);
+  el.style.setProperty('--c', c); el.style.setProperty('--t', tekstKleur(c));
+  el.querySelector('.bol').textContent = r.avatar || '🙂';
+  el.querySelector('.naam').textContent = r.naam || '';
+  if (!(sleep && ik && r.id === ik.id)){ el.style.left = r.x + '%'; el.style.top = r.y + '%'; }
+}
+
+/* ---------- Popup bij een poppetje ---------- */
+function toonPopup(id){ popupId = id; werkPopupBij(); }
+function sluitPopup(){ popupId = null; $('#popup').hidden = true; }
+function werkPopupBij(){
+  const p = $('#popup');
+  if (!popupId) return;
+  const r = rijen.get(popupId);
+  if (!r){ sluitPopup(); return; }
+  const z = zoneVan(r.x, r.y);
+  const naam = inst.anoniem ? (isPresentatie ? 'Anoniem' : 'Een medestudent') : r.naam;
+  let h = `<div class="pop-kop"><span class="bol-mini" style="--c:${veiligeKleur(r.kleur)}">${esc(r.avatar)}</span><b>${esc(naam)}</b></div>
+           <div>📍 ${esc(z.emoji + ' ' + z.naam)}</div>`;
+  if (r.zin) h += `<div class="pop-zin">“${esc(r.zin)}”</div>`;
+  if (isPresentatie && r.start_vast && typeof r.start_x === 'number'){
+    const zs = zoneVan(r.start_x, r.start_y);
+    h += `<div class="pop-klein">📌 Bij check-in: ${esc(zs.emoji + ' ' + zs.naam)}${r.start_zin ? `<br>“${esc(r.start_zin)}”` : ''}</div>`;
+  }
+  if (!isPresentatie){
+    h += `<div class="pop-klein">Stuur een reactie:</div>
+          <div class="pop-reacties">${REACTIES.map(e => `<button type="button" data-emoji="${e}">${e}</button>`).join('')}</div>`;
+  }
+  p.innerHTML = h; p.hidden = false;
+  p.style.left = r.x + '%'; p.style.top = r.y + '%';
+  const tx = r.x < 22 ? -12 : r.x > 78 ? -88 : -50;
+  p.style.transform = r.y < 40
+    ? `translate(${tx}%, var(--size-pop))`
+    : `translate(${tx}%, calc(-100% - var(--size-pop)))`;
+}
+
+/* ---------- Reacties ---------- */
+let laatsteReactie = 0;
+function stuurReactie(naar, emoji){
+  if (!ik || !REACTIES.includes(emoji)) return;
+  if (Date.now() - laatsteReactie < 1200) return;
+  laatsteReactie = Date.now();
+  const p = { van: ik.id, vanNaam: ik.naam, vanAvatar: ik.avatar, naar, emoji };
+  try { db.stuurReactie(p); } catch (e) { console.error(e); }
+  toonReactie(p);
+  sluitPopup();
+}
+function toonReactie(p){
+  if (!p || !REACTIES.includes(p.emoji)) return;
+  const r = rijen.get(p.naar); if (!r) return;
+  const z = document.createElement('div');
+  z.className = 'zweef'; z.textContent = p.emoji;
+  z.style.left = r.x + '%'; z.style.top = r.y + '%';
+  $('#tokens').appendChild(z); setTimeout(() => z.remove(), 1900);
+  const el = tokens.get(p.naar);
+  if (el){ el.classList.remove('geraakt'); void el.offsetWidth; el.classList.add('geraakt'); setTimeout(() => el.classList.remove('geraakt'), 850); }
+  if (!isPresentatie && ik && p.naar === ik.id && p.van !== ik.id){
+    const van = inst.anoniem ? 'Een medestudent' : `${String(p.vanAvatar || '').slice(0, 4)} ${String(p.vanNaam || '').slice(0, 20)}`;
+    toast(`${van} stuurt je ${p.emoji}`);
+    if (navigator.vibrate) navigator.vibrate(60);
+  }
+}
+
+/* ---------- Studentweergave ---------- */
+function initStudent(){
+  ik = laadIk();
+  $('#presentatieLink').href = '?view=presentatie' + kamerParam;
+  let keuze = { avatar: ik?.avatar || AVATARS[Math.floor(Math.random() * AVATARS.length)],
+                kleur: ik?.kleur || KLEUREN[Math.floor(Math.random() * KLEUREN.length)] };
+  const ag = $('#avatarKeuze'), kg = $('#kleurKeuze');
+  ag.innerHTML = AVATARS.map(a => `<button type="button" data-a="${a}" aria-label="Poppetje ${a}">${a}</button>`).join('');
+  kg.innerHTML = KLEUREN.map(k => `<button type="button" data-k="${k}" style="background:${k}" aria-label="Kleur ${k}"></button>`).join('');
+  const toonKeuze = () => {
+    ag.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.a === keuze.avatar));
+    kg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === keuze.kleur));
+    const vb = $('#voorbeeldBol'); vb.textContent = keuze.avatar; vb.style.setProperty('--c', keuze.kleur);
+    const n = $('#naamInput').value.trim(); $('#voorbeeldTekst').textContent = n ? `${n}, zo zie jij eruit op de kaart` : 'Zo zie jij eruit op de kaart';
+  };
+  ag.addEventListener('click', e => { const b = e.target.closest('button'); if (b){ keuze.avatar = b.dataset.a; toonKeuze(); } });
+  kg.addEventListener('click', e => { const b = e.target.closest('button'); if (b){ keuze.kleur = b.dataset.k; toonKeuze(); } });
+  $('#naamInput').addEventListener('input', toonKeuze);
+
+  $('#aanmeldForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const naam = $('#naamInput').value.trim().slice(0, 20);
+    if (!naam) return;
+    const bestaand = !!ik;
+    ik = { id: ik?.id || nieuwId(), naam, avatar: keuze.avatar, kleur: keuze.kleur };
+    bewaarIk(); toonSpel();
+    const oud = tokens.get(ik.id); if (oud){ oud.remove(); tokens.delete(ik.id); }
+    if (bestaand && rijen.has(ik.id)){
+      Object.assign(rijen.get(ik.id), { naam: ik.naam, avatar: ik.avatar, kleur: ik.kleur }); render();
+      try { await db.wijzig(ik.id, { naam: ik.naam, avatar: ik.avatar, kleur: ik.kleur }); toast('✓ Aangepast'); }
+      catch (err) { console.error(err); toast('⚠️ Opslaan mislukt: ' + uitlegFout(err), true); }
+    } else {
+      await maakMijnRij();
+      toast('⛵ Je staat op de boot. Sleep jezelf naar het eiland!');
+    }
+  });
+  $('#wijzigKnop').addEventListener('click', () => {
+    $('#naamInput').value = ik?.naam || ''; toonKeuze();
+    $('#aanmelden').hidden = false; $('#instructie').hidden = true; $('#statusKaart').hidden = true;
+    $('#aanmeldKnop').textContent = 'Opslaan ✓';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // Zin opslaan
+  $('#zinKnop').addEventListener('click', bewaarZin);
+  $('#zinInput').addEventListener('blur', bewaarZin);
+  $('#zinInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); bewaarZin(); $('#zinInput').blur(); } });
+
+  // Popup-knoppen (reacties)
+  $('#popup').addEventListener('click', e => {
+    e.stopPropagation();
+    const b = e.target.closest('[data-emoji]'); if (b) stuurReactie(popupId, b.dataset.emoji);
+  });
+
+  // Tikken op de kaart
+  $('#kaartContainer').addEventListener('click', e => {
+    const ander = e.target.closest('.token.ander');
+    if (ander){ toonPopup(ander.dataset.id); return; }
+    if (e.target.closest('.mijn')) return;
+    if (popupId){ sluitPopup(); return; }
+    if (!ik || !rijen.has(ik.id)) return;
+    const p = positieUitEvent(e, { dx: 0, dy: 0 });
+    zetMijnPositie(p.x, p.y); slaPositieOp(true);
+  });
+
+  if (ik){ $('#naamInput').value = ik.naam; toonSpel(); }
+  else { $('#aanmelden').hidden = false; }
+  toonKeuze();
+}
+function toonSpel(){
+  $('#aanmelden').hidden = true; $('#instructie').hidden = false; $('#statusKaart').hidden = false;
+}
+async function maakMijnRij(){
+  if (!ik || bezigMetAanmaken) return;
+  bezigMetAanmaken = true;
+  const rij = {
+    id: ik.id, kamer: KAMER, naam: ik.naam, avatar: ik.avatar, kleur: ik.kleur,
+    x: +(START.x + (Math.random() * 4 - 2)).toFixed(2), y: +(START.y + (Math.random() * 4 - 2)).toFixed(2),
+    zin: null, start_x: null, start_y: null, start_zin: null, start_vast: false, bijgewerkt: new Date().toISOString()
+  };
+  rijen.set(rij.id, rij); render();
+  try { await db.opslaan(rij); }
+  catch (e) { console.error(e); toast('⚠️ Aanmelden mislukt: ' + uitlegFout(e), true); }
+  finally { bezigMetAanmaken = false; }
+}
+function positieUitEvent(e, offset){
+  const r = $('#kaartContainer').getBoundingClientRect();
+  return {
+    x: +klem((e.clientX - offset.dx - r.left) / r.width * 100, 1.5, 98.5).toFixed(2),
+    y: +klem((e.clientY - offset.dy - r.top) / r.height * 100, 2, 97).toFixed(2)
+  };
+}
+function zetMijnPositie(x, y){
+  const r = rijen.get(ik.id); if (!r) return;
+  r.x = x; r.y = y;
+  const el = tokens.get(ik.id); if (el){ el.style.left = x + '%'; el.style.top = y + '%'; }
+  werkStatusBij();
+}
+function koppelSlepen(el){
+  const bol = el.querySelector('.bol');
+  let laatsteLive = 0;
+  bol.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    sluitPopup();
+    const r = $('#kaartContainer').getBoundingClientRect(), mijn = rijen.get(ik.id);
+    sleep = { id: e.pointerId, dx: e.clientX - (r.left + mijn.x / 100 * r.width), dy: e.clientY - (r.top + mijn.y / 100 * r.height) };
+    bol.setPointerCapture(e.pointerId); el.classList.add('sleept');
+  });
+  bol.addEventListener('pointermove', e => {
+    if (!sleep || e.pointerId !== sleep.id) return;
+    const p = positieUitEvent(e, sleep); zetMijnPositie(p.x, p.y);
+    const nu = Date.now(); if (nu - laatsteLive > 350){ laatsteLive = nu; slaPositieOp(false); }
+  });
+  const stop = e => {
+    if (!sleep || e.pointerId !== sleep.id) return;
+    sleep = null; el.classList.remove('sleept'); slaPositieOp(true);
+  };
+  bol.addEventListener('pointerup', stop);
+  bol.addEventListener('pointercancel', stop);
+}
+let opgeslagenTimer;
+function toonOpgeslagen(){
+  const o = $('#opgeslagen'); o.classList.add('zicht');
+  clearTimeout(opgeslagenTimer); opgeslagenTimer = setTimeout(() => o.classList.remove('zicht'), 1800);
+}
+async function slaPositieOp(definitief){
+  const r = rijen.get(ik?.id); if (!r) return;
+  const patch = { x: r.x, y: r.y, bijgewerkt: new Date().toISOString() };
+  if (!r.start_vast){ patch.start_x = r.x; patch.start_y = r.y; }
+  Object.assign(r, patch);
+  try { await db.wijzig(ik.id, patch); if (definitief) toonOpgeslagen(); }
+  catch (e) { console.error(e); toast('⚠️ Opslaan mislukt: ' + uitlegFout(e), true); }
+}
+async function bewaarZin(){
+  const r = rijen.get(ik?.id); if (!r) return;
+  const zin = $('#zinInput').value.replace(/\s+/g, ' ').trim().slice(0, 140) || null;
+  if ((r.zin || null) === zin) return;
+  r.zin = zin;
+  try { await db.wijzig(ik.id, { zin, bijgewerkt: new Date().toISOString() }); toonOpgeslagen(); }
+  catch (e) { console.error(e); toast('⚠️ Opslaan mislukt: ' + uitlegFout(e), true); }
+}
+function werkStatusBij(){
+  if (!ik) return;
+  const r = rijen.get(ik.id); if (!r) return;
+  $('#statusNaam').textContent = ik.naam;
+  const sb = $('#statusBol'); sb.textContent = ik.avatar; sb.style.setProperty('--c', ik.kleur);
+  const z = zoneVan(r.x, r.y);
+  $('#statusZone').textContent = `${z.emoji} ${z.naam}`;
+  const zi = $('#zinInput');
+  if (document.activeElement !== zi) zi.value = r.zin || '';
+  const info = $('#checkinInfo');
+  if (r.start_vast && typeof r.start_x === 'number'){
+    const zs = zoneVan(r.start_x, r.start_y);
+    info.innerHTML = `📌 Bij de check-in stond je bij <b>${esc(zs.emoji + ' ' + zs.naam)}</b>${r.start_zin ? ` (“${esc(r.start_zin)}”)` : ''}. Sleep je poppetje voor de check-out naar waar je nú staat.`;
+  } else info.textContent = '';
+}
+
+/* ---------- Presentatieweergave ---------- */
+function initPresentatie(){
+  document.body.classList.add('presentatie');
+  const url = new URL(location.href); url.searchParams.delete('view'); url.hash = '';
+  const link = url.toString();
+  $('#qrUrl').textContent = link.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  try {
+    const qr = qrcode(0, 'M'); qr.addData(link); qr.make();
+    $('#qrImg').src = qr.createDataURL(8, 2);
+  } catch (e) { $('#qrImg').hidden = true; }
+
+  $('#kaartContainer').addEventListener('click', e => {
+    if (e.target.closest('#popup')) return;
+    const t = e.target.closest('.token');
+    if (t) toonPopup(t.dataset.id); else sluitPopup();
+  });
+  $('#knopCheckin').addEventListener('click', () => vastleggen('checkin'));
+  $('#knopCheckout').addEventListener('click', () => vastleggen('checkout'));
+  $('#knopBeweging').addEventListener('click', e => {
+    const aan = document.body.classList.toggle('toon-beweging');
+    e.currentTarget.setAttribute('aria-pressed', aan);
+    if (aan && ![...rijen.values()].some(r => r.start_vast))
+      toast('ℹ️ Klik eerst na de check-in op 📌 Check-in vastleggen.');
+  });
+  $('#knopOverzicht').addEventListener('click', () => openModal('overzicht'));
+  $('#knopZinnen').addEventListener('click', () => openModal('zinnen'));
+  $('#knopTimer').addEventListener('click', () => openModal('timer'));
+  $('#knopInstellingen').addEventListener('click', () => openModal('instellingen'));
+  $('#knopAnoniem').addEventListener('click', () => {
+    bewaarInst({ anoniem: !inst.anoniem });
+    toast(inst.anoniem ? '🙈 Anoniem: namen zijn verborgen' : '👀 Namen zijn weer zichtbaar');
+  });
+  $('#knopLogboek').addEventListener('click', () => window.open('?view=logboek' + kamerParam, '_blank'));
+  $('#knopFull').addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else document.documentElement.requestFullscreen?.().catch(() => {});
+  });
+  $('#knopWis').addEventListener('click', async () => {
+    if (!confirm('Alle poppetjes van het eiland verwijderen? (Handig voor een nieuwe les. Het logboek blijft bewaard.)')) return;
+    try { await db.allesWissen(); rijen.clear(); render(); toast('🧹 Het eiland is leeg.'); }
+    catch (e) { console.error(e); toast('⚠️ ' + uitlegFout(e), true); }
+  });
+  $('#modalSluit').addEventListener('click', sluitModal);
+  $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') sluitModal(); });
+  $('#modalInhoud').addEventListener('click', modalKlik);
+}
+async function vastleggen(moment){
+  const lijst = [...rijen.values()];
+  if (!lijst.length){ toast('Er staat nog niemand op het eiland.'); return; }
+  const les = vandaag();
+  const logRijen = lijst.map(r => {
+    const z = zoneVan(r.x, r.y);
+    return { kamer: KAMER, les, moment, deelnemer_id: r.id, naam: r.naam, avatar: r.avatar, kleur: r.kleur,
+             x: r.x, y: r.y, zone_id: z.id, zone: z.naam, zin: r.zin || null };
+  });
+  try {
+    if (moment === 'checkin'){
+      await db.startVastleggen(lijst);
+      lijst.forEach(r => { r.start_x = r.x; r.start_y = r.y; r.start_zin = r.zin || null; r.start_vast = true; });
+    }
+    await db.logVervang(les, moment, logRijen);
+    render();
+    if (moment === 'checkin') toast(`📌 Check-in vastgelegd voor ${lijst.length} deelnemer(s) en bewaard in het logboek.`);
+    else { toast(`🏁 Check-out vastgelegd voor ${lijst.length} deelnemer(s).`); openModal('overzicht'); }
+  } catch (e) { console.error(e); toast('⚠️ ' + uitlegFout(e), true); }
+}
+function tekenTelling(){
+  const t = {};
+  for (const r of rijen.values()){ const z = zoneVan(r.x, r.y); t[z.id] = (t[z.id] || 0) + 1; }
+  const lijst = [...ZONES]; if (t.zee) lijst.push(ZEE);
+  $('#telling').innerHTML = lijst.map(z => `<div class="chip"><span>${esc(z.emoji)}</span>${esc(kort(z))}<b>${t[z.id] || 0}</b></div>`).join('');
+  $('#tellerTekst').textContent = `👥 ${rijen.size} op het eiland${KAMER !== 'standaard' ? ' · ' + KAMER : ''}`;
+}
+function tekenBeweging(){
+  let html = '';
+  for (const r of rijen.values()){
+    if (!r.start_vast || typeof r.start_x !== 'number') continue;
+    const c = veiligeKleur(r.kleur);
+    const x1 = r.start_x * 10, y1 = r.start_y * 7.5, x2 = r.x * 10, y2 = r.y * 7.5;
+    const d = Math.hypot(x2 - x1, y2 - y1);
+    html += `<g><circle cx="${x1}" cy="${y1}" r="17" fill="${c}" fill-opacity=".22" stroke="${c}" stroke-width="3" stroke-dasharray="5 4"/>
+      <text x="${x1}" y="${y1 + 1}" text-anchor="middle" dominant-baseline="central" font-size="17" opacity=".6">${esc(r.avatar)}</text>`;
+    if (d > 40){
+      const ux = (x2 - x1) / d, uy = (y2 - y1) / d;
+      const sx = x1 + ux * 20, sy = y1 + uy * 20, ex = x2 - ux * 24, ey = y2 - uy * 24;
+      const bx = ex - ux * 16, by = ey - uy * 16, px = -uy * 9, py = ux * 9;
+      html += `<path d="M${sx} ${sy} L${bx} ${by}" stroke="${c}" stroke-width="5" stroke-dasharray="11 7" stroke-linecap="round" fill="none" opacity=".9"/>
+        <polygon points="${ex},${ey} ${bx + px},${by + py} ${bx - px},${by - py}" fill="${c}"/>`;
+    }
+    html += '</g>';
+  }
+  $('#bewegingLijnen').innerHTML = html;
+}
+
+/* ---------- Vensters (modals) ---------- */
+function openModal(type){ modalType = type; sluitPopup(); $('#modal').hidden = false; vulModal(); }
+function sluitModal(){ modalType = null; $('#modal').hidden = true; }
+function vulModal(){
+  const el = $('#modalInhoud');
+  if (modalType === 'zinnen') el.innerHTML = htmlZinnen();
+  else if (modalType === 'overzicht') el.innerHTML = htmlOverzicht();
+  else if (modalType === 'timer') el.innerHTML = htmlTimer();
+  else if (modalType === 'instellingen') el.innerHTML = htmlInstellingen();
+}
+function htmlZinnen(){
+  const groepen = new Map();
+  for (const r of rijen.values()){
+    if (!r.zin) continue;
+    const z = zoneVan(r.x, r.y);
+    if (!groepen.has(z.id)) groepen.set(z.id, []);
+    groepen.get(z.id).push(r);
+  }
+  const kop = `<h2>💬 Zinnen${inst.vraag ? `<small>❓ ${esc(inst.vraag)}</small>` : ''}</h2>`;
+  if (!groepen.size) return kop + `<p>Nog niemand heeft een zin ingevuld. Studenten doen dat op hun telefoon, onder de kaart.</p>`;
+  const volgorde = [...ZONES, ZEE].filter(z => groepen.has(z.id));
+  return kop + `<div class="zin-grid">${volgorde.map(z => `
+    <div class="zin-kolom" style="--c:${z.kleur}"><h3>${esc(z.emoji + ' ' + z.naam)}</h3>
+      ${groepen.get(z.id).map(r => `<div class="zin">“${esc(r.zin)}”${inst.anoniem ? '' : `<span>— ${esc(r.avatar)} ${esc(r.naam)}</span>`}</div>`).join('')}
+    </div>`).join('')}</div>`;
+}
+function htmlOverzicht(){
+  const lijst = [...rijen.values()].filter(r => r.start_vast && typeof r.start_x === 'number');
+  const kop = '<h2>📊 Groepsoverzicht<small>Van check-in naar nu</small></h2>';
+  if (!lijst.length) return kop + `<p>Er is nog geen check-in vastgelegd. Klik na de check-in op <b>📌 Check-in vastleggen</b>. Na de check-out zie je hier hoe de groep zich heeft verplaatst.</p>`;
+  const voor = {}, na = {}, paren = new Map();
+  let bewogen = 0;
+  for (const r of lijst){
+    const a = zoneVan(r.start_x, r.start_y), b = zoneVan(r.x, r.y);
+    voor[a.id] = (voor[a.id] || 0) + 1; na[b.id] = (na[b.id] || 0) + 1;
+    const k = a.id + '>' + b.id; paren.set(k, (paren.get(k) || 0) + 1);
+    if (a.id !== b.id) bewogen++;
+  }
+  const max = Math.max(1, ...Object.values(voor), ...Object.values(na));
+  const zones = [...ZONES]; if (voor.zee || na.zee) zones.push(ZEE);
+  const balk = (n, c) => `<div class="balk-rij"><div class="balk" style="width:${n / max * 100}%;--c:${c}"></div><span>${n}</span></div>`;
+  const rijenHtml = zones.map(z => {
+    const v = voor[z.id] || 0, n = na[z.id] || 0, d = n - v;
+    return `<tr><td>${esc(z.emoji + ' ' + z.naam)}</td><td style="width:28%">${balk(v, z.kleur)}</td><td style="width:28%">${balk(n, z.kleur)}</td>
+      <td class="${d > 0 ? 'plus' : d < 0 ? 'min' : ''}">${d > 0 ? '+' : ''}${d}</td></tr>`;
+  }).join('');
+  const regels = [...paren].sort((a, b) => b[1] - a[1]).map(([k, n]) => { const [a, b] = k.split('>'); return `<li>${beschrijfOvergang(a, b, n)}</li>`; }).join('');
+  return kop + `<p class="samenvatting">${bewogen} van de ${lijst.length} deelnemers zijn van plek veranderd.</p>
+    <table class="tabel"><tr><th>Zone</th><th>Check-in</th><th>Nu</th><th>Verschil</th></tr>${rijenHtml}</table>
+    <h3>Bewegingen</h3><ul class="overgangen">${regels}</ul>`;
+}
+function htmlTimer(){
+  const lopend = inst.timer_eind && new Date(inst.timer_eind).getTime() > Date.now();
+  return `<h2>⏱ Timer<small>Zichtbaar op de beamer én op alle telefoons</small></h2>
+    <div class="timer-knoppen">
+      ${[[30,'30 sec'],[60,'1 min'],[120,'2 min'],[180,'3 min'],[300,'5 min']].map(([s, t]) => `<button class="knop" data-timer="${s}">${t}</button>`).join('')}
+      ${lopend ? '<button class="knop licht" data-timer="0">⏹ Stop timer</button>' : ''}
+    </div>`;
+}
+function htmlInstellingen(){
+  return `<h2>⚙️ Vraag, zones &amp; groep</h2>
+    <label class="veld">❓ Check-in-vraag (zichtbaar op de beamer en alle telefoons, leeg = geen vraag)
+      <input id="instVraag" maxlength="120" value="${esc(inst.vraag || '')}" placeholder="Bijv. Waar sta jij in je praktijkonderzoek?">
+    </label>
+    <label class="vink"><input type="checkbox" id="instAnoniem" ${inst.anoniem ? 'checked' : ''}> 🙈 Anoniem: verberg namen op de beamer en bij medestudenten</label>
+    <h3>🏝️ Zones op de kaart</h3>
+    <p class="klein">Pas de namen, ondertitels, emoji's en kleuren aan. De plek op de kaart blijft hetzelfde.</p>
+    <div id="zoneEditor">${ZONES.map(z => `
+      <div class="zone-edit">
+        <input class="z-emoji" maxlength="4" value="${esc(z.emoji)}" aria-label="Emoji">
+        <input class="z-naam" maxlength="40" value="${esc(z.naam)}" aria-label="Naam">
+        <input class="z-sub" maxlength="60" value="${esc(z.sub)}" aria-label="Ondertitel">
+        <input class="z-kleur" type="color" value="${esc(z.kleur)}" aria-label="Kleur">
+      </div>`).join('')}</div>
+    <div class="knoppenrij">
+      <button class="knop" data-actie="inst-opslaan">Opslaan ✓</button>
+      <button class="knop licht" data-actie="inst-reset">Standaardzones terugzetten</button>
+    </div>
+    <h3>👥 Groep</h3>
+    <p class="klein">Je zit nu in groep <b>${esc(KAMER)}</b>. Elke groep heeft een eigen eiland, eigen vraag en zones, en een eigen logboek.
+      De QR-code op de beamer verwijst altijd naar de groep die open staat.</p>
+    <div class="zin-rij">
+      <input id="instKamer" maxlength="30" placeholder="Naam van een groep, bijv. groep-a">
+      <button class="knop" data-actie="kamer-open">Open deze groep</button>
+    </div>`;
+}
+async function modalKlik(e){
+  const t = e.target.closest('[data-timer],[data-actie]'); if (!t) return;
+  if (t.dataset.timer !== undefined){
+    const s = +t.dataset.timer;
+    await bewaarInst({ timer_eind: s ? new Date(Date.now() + s * 1000).toISOString() : null });
+    sluitModal();
+    return;
+  }
+  const actie = t.dataset.actie;
+  if (actie === 'inst-reset'){
+    document.querySelectorAll('#zoneEditor .zone-edit').forEach((rij, i) => {
+      const z = ZONE_BASIS[i];
+      rij.querySelector('.z-emoji').value = z.emoji; rij.querySelector('.z-naam').value = z.naam;
+      rij.querySelector('.z-sub').value = z.sub; rij.querySelector('.z-kleur').value = z.kleur;
+    });
+    toast('Standaardzones ingevuld. Klik op Opslaan om ze te gebruiken.');
+  }
+  if (actie === 'inst-opslaan'){
+    const zones = [...document.querySelectorAll('#zoneEditor .zone-edit')].map(rij => ({
+      emoji: rij.querySelector('.z-emoji').value.trim(), naam: rij.querySelector('.z-naam').value.trim(),
+      sub: rij.querySelector('.z-sub').value.trim(), kleur: rij.querySelector('.z-kleur').value,
+    }));
+    await bewaarInst({ vraag: $('#instVraag').value.trim().slice(0, 120) || null, anoniem: $('#instAnoniem').checked, zones });
+    sluitModal(); toast('✓ Opgeslagen: iedereen ziet de nieuwe instellingen.');
+  }
+  if (actie === 'kamer-open'){
+    const k = $('#instKamer').value.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 30);
+    if (!k){ toast('Vul een groepsnaam in (letters, cijfers, - of _).'); return; }
+    location.href = '?view=presentatie' + (k === 'standaard' ? '' : '&kamer=' + encodeURIComponent(k));
+  }
+}
+
+/* ---------- Logboek ---------- */
+let logData = [];
+async function initLogboek(){
+  document.body.classList.add('logboekmodus');
+  $('#logboekView').hidden = false;
+  $('#lbGroep').textContent = KAMER === 'standaard' ? '' : '· groep ' + KAMER;
+  $('#lbTerug').href = '?view=presentatie' + kamerParam;
+  $('#lbVernieuw').addEventListener('click', laadLogboek);
+  $('#lbCsv').addEventListener('click', downloadCsv);
+  $('#lbWis').addEventListener('click', async () => {
+    if (!confirm('Het hele logboek van deze groep verwijderen? Download het eerst als je het wilt bewaren.')) return;
+    try { await db.logWissen(); await laadLogboek(); toast('🗑 Logboek gewist'); }
+    catch (e) { console.error(e); toast('⚠️ ' + uitlegFout(e), true); }
+  });
+  await laadLogboek();
+}
+async function laadLogboek(){
+  const el = $('#lbInhoud');
+  try { logData = await db.logAlles(); }
+  catch (e) { console.error(e); el.innerHTML = `<div class="kaartje"><p>⚠️ ${esc(uitlegFout(e))}</p></div>`; return; }
+  logData.sort((a, b) => (a.les > b.les ? 1 : a.les < b.les ? -1 : 0) || (a.moment === b.moment ? 0 : a.moment === 'checkin' ? -1 : 1) || String(a.naam).localeCompare(String(b.naam)));
+  if (!logData.length){
+    el.innerHTML = `<div class="kaartje"><p>Er is nog niets vastgelegd. Klik in de presentatie-weergave op <b>📌 Check-in vastleggen</b> en <b>🏁 Check-out vastleggen</b>; daarna verschijnt elke les hier.</p></div>`;
+    return;
+  }
+  el.innerHTML = htmlPerLes() + htmlPerDeelnemer() + htmlAlleRegels();
+}
+function telZones(lijst){ const t = {}; lijst.forEach(r => { t[r.zone_id] = (t[r.zone_id] || 0) + 1; }); return t; }
+function htmlPerLes(){
+  const lessen = [...new Set(logData.map(r => r.les))].sort().reverse();
+  return `<h2 class="lb-h2">📅 Per les</h2>` + lessen.map(les => {
+    const ci = logData.filter(r => r.les === les && r.moment === 'checkin');
+    const co = logData.filter(r => r.les === les && r.moment === 'checkout');
+    const tci = telZones(ci), tco = telZones(co);
+    const zones = [...ZONES]; if (tci.zee || tco.zee) zones.push(ZEE);
+    const coMap = new Map(co.map(r => [r.deelnemer_id, r]));
+    const paren = new Map();
+    ci.forEach(r => { const b = coMap.get(r.deelnemer_id); if (!b) return; const k = r.zone_id + '>' + b.zone_id; paren.set(k, (paren.get(k) || 0) + 1); });
+    const bewogen = [...paren].filter(([k]) => { const [a, b] = k.split('>'); return a !== b; }).reduce((s, [, n]) => s + n, 0);
+    const totaal = [...paren.values()].reduce((s, n) => s + n, 0);
+    const regels = [...paren].sort((a, b) => b[1] - a[1]).map(([k, n]) => { const [a, b] = k.split('>'); return `<li>${beschrijfOvergang(a, b, n)}</li>`; }).join('');
+    return `<div class="kaartje"><h3>${esc(datumNL(les))}</h3>
+      <p>${ci.length} bij check-in · ${co.length} bij check-out${totaal ? ` · <b>${bewogen} van de ${totaal}</b> zijn van plek veranderd` : ''}</p>
+      <table class="tabel"><tr><th>Zone</th><th>Check-in</th><th>Check-out</th></tr>
+      ${zones.map(z => `<tr><td>${esc(z.emoji + ' ' + z.naam)}</td><td>${tci[z.id] || 0}</td><td>${tco[z.id] || 0}</td></tr>`).join('')}</table>
+      ${regels ? `<ul class="overgangen">${regels}</ul>` : ''}</div>`;
+  }).join('');
+}
+function htmlPerDeelnemer(){
+  const lessen = [...new Set(logData.map(r => r.les))].sort();
+  const mensen = new Map();
+  logData.forEach(r => mensen.set(r.deelnemer_id, { naam: r.naam, avatar: r.avatar }));
+  const cel = (id, les) => {
+    const a = logData.find(r => r.deelnemer_id === id && r.les === les && r.moment === 'checkin');
+    const b = logData.find(r => r.deelnemer_id === id && r.les === les && r.moment === 'checkout');
+    if (!a && !b) return '<td>·</td>';
+    const ea = a ? zoneOpId(a.zone_id).emoji : '·', eb = b ? zoneOpId(b.zone_id).emoji : '·';
+    const titel = [a && `Check-in: ${a.zone}${a.zin ? ' – “' + a.zin + '”' : ''}`, b && `Check-out: ${b.zone}${b.zin ? ' – “' + b.zin + '”' : ''}`].filter(Boolean).join('\n');
+    return `<td title="${esc(titel)}">${esc(ea)} → ${esc(eb)}</td>`;
+  };
+  const gesorteerd = [...mensen].sort((a, b) => String(a[1].naam).localeCompare(String(b[1].naam)));
+  return `<h2 class="lb-h2">🧭 Per deelnemer</h2>
+    <div class="kaartje"><p class="klein">Per les: zone bij check-in → zone bij check-out. Ga met de muis op een vakje staan om de zinnen te lezen.</p>
+    <div class="scroll"><table class="tabel traject">
+      <tr><th>Deelnemer</th>${lessen.map(l => `<th>${esc(datumNL(l, { day: 'numeric', month: 'short' }))}</th>`).join('')}</tr>
+      ${gesorteerd.map(([id, m]) => `<tr><td>${esc(m.avatar)} ${esc(m.naam)}</td>${lessen.map(l => cel(id, l)).join('')}</tr>`).join('')}
+    </table></div>
+    <p class="klein">${ZONES.map(z => esc(z.emoji + ' ' + kort(z))).join(' · ')} · ⛵ op zee</p></div>`;
+}
+function htmlAlleRegels(){
+  return `<h2 class="lb-h2">📋 Alle regels</h2><div class="kaartje"><details><summary>Toon alle ${logData.length} regels</summary>
+    <div class="scroll"><table class="tabel"><tr><th>Les</th><th>Moment</th><th>Naam</th><th>Zone</th><th>Zin</th></tr>
+    ${logData.map(r => `<tr><td>${esc(datumNL(r.les, { day: 'numeric', month: 'short', year: 'numeric' }))}</td><td>${r.moment === 'checkin' ? '📌 check-in' : '🏁 check-out'}</td>
+      <td>${esc(r.avatar)} ${esc(r.naam)}</td><td>${esc(r.zone)}</td><td>${esc(r.zin || '')}</td></tr>`).join('')}
+    </table></div></details></div>`;
+}
+function downloadCsv(){
+  if (!logData.length){ toast('Het logboek is nog leeg.'); return; }
+  const kop = ['les', 'moment', 'naam', 'avatar', 'zone', 'zin', 'x (%)', 'y (%)', 'tijdstip', 'groep'];
+  const cel = v => {
+    let s = v == null ? '' : String(v);
+    if (/^[=+\-@]/.test(s)) s = "'" + s;           // voorkomt formules in Excel
+    return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const getal = n => typeof n === 'number' ? n.toFixed(1).replace('.', ',') : '';
+  const regels = [kop.join(';'), ...logData.map(r => [
+    r.les, r.moment === 'checkin' ? 'check-in' : 'check-out', r.naam, r.avatar, r.zone, r.zin,
+    getal(r.x), getal(r.y), r.gemaakt ? new Date(r.gemaakt).toLocaleString('nl-NL') : '', r.kamer
+  ].map(cel).join(';'))];
+  const blob = new Blob(['﻿' + regels.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `eiland-logboek-${KAMER}-${vandaag()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+
+/* ---------- Start ---------- */
+async function start(){
+  bouwKaart(); tekenLabels();
+  document.fonts?.ready.then(tekenLabels);
+  if (DEMO) $('#demoBanner').hidden = false;
+  try { db = DEMO ? maakDemoDb() : maakSupabaseDb(); }
+  catch (e) { console.error(e); toast('⚠️ Kon de database-bibliotheek niet laden. Check je internet.', true); return; }
+
+  await laadInstellingen();
+  if (isLogboek){ initLogboek(); return; }
+  if (isPresentatie) initPresentatie(); else initStudent();
+  await herlaad();
+  db.luister({ deelnemer: verwerk, instelling: verwerkInstelling, reactie: toonReactie, status: zetVerbinding });
+  setInterval(() => { herlaad(); laadInstellingen(true); }, 15000);   // vangnet als realtime even wegvalt
+  document.addEventListener('visibilitychange', () => { if (!document.hidden){ herlaad(); laadInstellingen(true); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ sluitPopup(); sluitModal(); } });
+}
+start();
+</script>
+</body>
+</html>
